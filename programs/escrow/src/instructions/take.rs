@@ -15,6 +15,10 @@ use crate::state::Escrow;
 pub struct Take<'info> {
     #[account(mut)]
     pub taker: Signer<'info>,
+    // normal solana account.
+    // pass the account as a SystemAccount to the instruction
+    // only receives the account, not the authority
+    // you input the maker's public key here
     #[account(mut)]
     pub maker: SystemAccount<'info>,
 
@@ -61,6 +65,7 @@ pub struct Take<'info> {
     pub escrow: Account<'info, Escrow>,
 
     #[account(
+        mut,
         associated_token::mint = mint_a,
         associated_token::authority = escrow,
         associated_token::token_program = token_program,
@@ -87,7 +92,7 @@ impl<'info> Take<'info> {
         Ok(())
     }
 
-    pub fn withdraw_and_close_vault(&mut self) {
+    pub fn withdraw_and_close_vault(&mut self) -> Result<()> {
         let signer_seeds: [&[&[u8]]; 1] = [&[
             b"escrow",
             self.maker.to_account_info().key.as_ref(),
@@ -108,7 +113,7 @@ impl<'info> Take<'info> {
             &signer_seeds,
         );
 
-        transfer_checked(cpi_ctx, self.vault.amount, self.mint_a.decimals);
+        transfer_checked(cpi_ctx, self.vault.amount, self.mint_a.decimals)?;
 
         let accounts = CloseAccount {
             account: self.vault.to_account_info(),
@@ -122,19 +127,6 @@ impl<'info> Take<'info> {
             &signer_seeds,
         );
 
-        close_account(ctx);
+        close_account(ctx)
     }
-
-    // pub fn deposit(&mut self, deposit: u64) -> Result<()> {
-    //     let transfer_accounts = TransferChecked {
-    //         from: self.maker_ata_a.to_account_info(),
-    //         mint: self.mint_a.to_account_info(),
-    //         to: self.vault.to_account_info(),
-    //         authority: self.maker.to_account_info(),
-    //     };
-
-    //     let cpi_ctx = CpiContext::new(self.token_program.to_account_info(), transfer_accounts);
-    //     transfer_checked(cpi_ctx, deposit, self.mint_a.decimals)?;
-    //     Ok(())
-    // }
 }

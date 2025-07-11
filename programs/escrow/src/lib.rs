@@ -1,14 +1,20 @@
 #![allow(unexpected_cfgs)]
+#![allow(deprecated)]
+pub mod constants; // constants.rs
+pub mod error; // error.rs
+pub mod instructions; // instructions/*
+pub mod state; // state/*
+
 use anchor_lang::prelude::*;
 
-mod instructions;
-use instructions::*;
-mod state;
+pub use constants::*;
+pub use instructions::*;
+pub use state::*;
+
 declare_id!("46QKesUMiXGu8kX6jdd6wxJYoQq9W6qoNfFdh1MaJuXn");
 
 #[program]
 pub mod escrow {
-    use crate::instructions::MakeBumps;
 
     use super::*;
 
@@ -21,8 +27,17 @@ pub mod escrow {
 
     pub fn take(ctx: Context<Take>) -> Result<()> {
         ctx.accounts.deposit()?;
-        ctx.accounts.withdraw_and_close_vault();
+        ctx.accounts.withdraw_and_close_vault()?;
 
         Ok(())
     }
+
+    pub fn refund(ctx: Context<Refund>) -> Result<()> {
+        ctx.accounts.refund_and_close_vault()?;
+        Ok(())
+    }
 }
+
+// maker - token A -> vault and want to receive token B
+// taker - token B -> maker and withdraw token A deposited by maker from vault
+// taker should know the maker's public key to take the escrow
